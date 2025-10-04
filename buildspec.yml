@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    AWS_REGION: ap-south-1
+    AWS_REGION: eu-north-1
     ACCOUNT_ID: 287216490901
     CLUSTER_NAME: hello-world-eks
     DEPLOYMENT_NAME: hello-deployment
