@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: hello-container   # <-- CONTAINER_NAME
-        image: 123456789012.dkr.ecr.ap-south-1.amazonaws.com/my-ecr-repo:latest
+        image: 287216490901.dkr.ecr.ap-south-1.amazonaws.com/hello-world-ecr:latest
         ports:
         - containerPort: 8080
 ---
