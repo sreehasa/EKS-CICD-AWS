@@ -45,7 +45,7 @@ phases:
       - kubectl apply -f deployment.yaml
       # Update deployment image
       - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-      - echo "✅ Deployment complete!"
+      - echo "Deployment complete!"
 
 artifacts:
   files:
