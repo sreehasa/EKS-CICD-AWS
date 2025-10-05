@@ -18,12 +18,11 @@ phases:
 
     commands:
       - echo "Installing kubectl and aws-iam-authenticator"
-      - KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
-      - echo "Latest kubectl version: $KUBECTL_VERSION"
-      - curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/
-      - kubectl version --client
+      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/
+      - curl -Lo aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/aws-iam-authenticator
+      - chmod +x ./aws-iam-authenticator && mv ./aws-iam-authenticator /usr/local/bin/
+      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
 
      
   pre_build:
