@@ -17,17 +17,15 @@ phases:
       java: corretto11
 
     commands:
-      - echo "Installing kubectl..."
-      - KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
-      - curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/
-      - kubectl version --client
-      - echo "Installing AWS IAM Authenticator..."
-      - curl -o aws-iam-authenticator https://amazon-eks.s3.$AWS_REGION.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/aws-iam-authenticator
-      - chmod +x ./aws-iam-authenticator
-      - mv ./aws-iam-authenticator /usr/local/bin/
-      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+
+      - echo "Installing kubectl..." && \
+        KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt) && \
+        echo "Version: $KUBECTL_VERSION" && \
+        curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl && \
+        chmod +x ./kubectl && \
+        mv ./kubectl /usr/local/bin/ && \
+        kubectl version --client
+
 
   pre_build:
     commands:
