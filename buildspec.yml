@@ -20,7 +20,6 @@ phases:
 
       - echo "Installing kubectl..." && \
         KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt) && \
-        echo "Version: $KUBECTL_VERSION" && \
         curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl && \
         chmod +x ./kubectl && \
         mv ./kubectl /usr/local/bin/ && \
