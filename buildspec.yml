@@ -22,6 +22,10 @@ phases:
       - chmod +x ./kubectl
       - mv ./kubectl /usr/local/bin/
       - kubectl version --client
+      - echo "Configuring kubeconfig for EKS..."
+      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+      - kubectl config view
+      - kubectl get nodes
 
 
 
