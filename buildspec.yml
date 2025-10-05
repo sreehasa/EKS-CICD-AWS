@@ -8,6 +8,7 @@ env:
     DEPLOYMENT_NAME: hello-deployment
     CONTAINER_NAME: hello-container
     ECR_REPO_NAME: hello-world-ecr
+    IMAGE_REPO_NAME: "hello-world-repo"
     IMAGE_TAG: latest
 
 phases:
