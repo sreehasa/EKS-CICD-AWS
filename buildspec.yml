@@ -18,15 +18,12 @@ phases:
 
     commands:
       - echo "Installing kubectl and aws-iam-authenticator"
-      - echo "Getting latest stable kubectl version..."
-      - KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
-      - echo "Latest kubectl version is $KUBECTL_VERSION"
-      - curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+      - echo "Installing kubectl..."
+      - curl -LO $(curl -s https://dl.k8s.io/release/stable.txt | xargs -I {} echo https://dl.k8s.io/release/{}/bin/linux/amd64/kubectl)
       - chmod +x ./kubectl
       - mv ./kubectl /usr/local/bin/
       - kubectl version --client
-
-      
+     
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
