@@ -17,18 +17,25 @@ phases:
       java: corretto11
 
     commands:
-      - echo "Installing kubectl and aws-iam-authenticator"
-      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl && mv ./kubectl /usr/local/bin/
-      - curl -Lo aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/aws-iam-authenticator
-      - chmod +x ./aws-iam-authenticator && mv ./aws-iam-authenticator /usr/local/bin/
+      - echo "Installing kubectl..."
+      - KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
+      - echo "Latest kubectl version: $KUBECTL_VERSION"
+      - curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/
+      - kubectl version --client
+      - echo "Installing AWS IAM Authenticator..."
+      - curl -o aws-iam-authenticator https://amazon-eks.s3.$AWS_REGION.amazonaws.com/1.30.0/2024-07-12/bin/linux/amd64/aws-iam-authenticator
+      - chmod +x ./aws-iam-authenticator
+      - mv ./aws-iam-authenticator /usr/local/bin/
       - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
 
-     
   pre_build:
     commands:
       - echo "Logging in to Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - echo "Ensure ECR repo exists..."
+      - aws ecr describe-repositories --repository-names $ECR_REPO_NAME || aws ecr create-repository --repository-name $ECR_REPO_NAME
 
   build:
     commands:
@@ -36,19 +43,16 @@ phases:
       - mvn clean package -DskipTests
       - echo "Building Docker image..."
       - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
-      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
 
   post_build:
     commands:
       - echo "Pushing Docker image to ECR..."
-      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
       - echo "Deploying to EKS..."
-      # Ensure deployment.yaml is in your repo root
-      # - kubectl apply -f deployment.yaml
-      # Update deployment image
-      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - kubectl apply -f deployment.yaml
+      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
       - echo "Deployment complete!"
-
 artifacts:
   files:
     - target/*.war
