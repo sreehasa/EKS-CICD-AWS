@@ -17,13 +17,12 @@ phases:
       java: corretto11
 
     commands:
+      - echo "Installing kubectl v1.34.1..."
+      - curl -o kubectl https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/
+      - kubectl version --client
 
-      - echo "Installing kubectl..." && \
-        KUBECTL_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt) && \
-        curl -o kubectl https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl && \
-        chmod +x ./kubectl && \
-        mv ./kubectl /usr/local/bin/ && \
-        kubectl version --client
 
 
   pre_build:
