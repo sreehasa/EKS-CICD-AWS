@@ -4,7 +4,7 @@ env:
   variables:
     AWS_REGION: eu-north-1
     ACCOUNT_ID: 287216490901
-    CLUSTER_NAME: hello-world-eks
+    CLUSTER_NAME: hello-world-eks2
     DEPLOYMENT_NAME: hello-deployment
     CONTAINER_NAME: hello-container
     ECR_REPO_NAME: hello-world-ecr
