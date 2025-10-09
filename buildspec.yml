@@ -7,52 +7,57 @@ env:
     CLUSTER_NAME: hello-world-eks2
     DEPLOYMENT_NAME: hello-deployment
     CONTAINER_NAME: hello-container
-    ECR_REPO_NAME: hello-world-ecr
     IMAGE_REPO_NAME: hello-world-ecr
+    ECR_REPO_NAME: hello-world-ecr
     IMAGE_TAG: latest
 
 phases:
   install:
     runtime-versions:
-      java: corretto11
-
+      java: corretto21
+      docker: 20
     commands:
-      - echo "Installing kubectl v1.34.1..."
-      - curl -LO -L https://dl.k8s.io/release/v1.34.1/bin/linux/amd64/kubectl
-      - chmod +x ./kubectl
-      - mv ./kubectl /usr/local/bin/
+      - echo "Installing kubectl"
+      - KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
+      - echo "Latest kubectl version is $KUBECTL_VERSION"
+      - curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+      - chmod +x kubectl
+      - mv kubectl /usr/local/bin/kubectl
       - kubectl version --client
-      - echo "Configuring kubeconfig for EKS..."
-      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-      - kubectl config view
-      - kubectl get nodes
-
-
-
 
   pre_build:
     commands:
-      - echo "Logging in to Amazon ECR..."
+      - echo "Updating kubeconfig"
+      - aws sts get-caller-identity
+      - mkdir -p ~/.kube
+      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+      - export KUBECONFIG=/root/.kube/config
+      - echo "Kubeconfig:"
+      - cat $KUBECONFIG
+      - echo "Verifying access to EKS"
+      - kubectl get nodes || (echo "kubectl failed" && exit 1)
+      - echo "Logging into ECR"
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-      - echo "Ensure ECR repo exists..."
-      - aws ecr describe-repositories --repository-names $ECR_REPO_NAME || aws ecr create-repository --repository-name $ECR_REPO_NAME
-
+     
   build:
     commands:
-      - echo "Building Maven project..."
+      - echo "Building the application"
       - mvn clean package -DskipTests
-      - echo "Building Docker image..."
+      - echo "Building Docker image"
       - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
-      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo "Pushing Docker image to ECR..."
-      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
-      - echo "Deploying to EKS..."
-      - kubectl apply -f deployment.yaml
-      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO_NAME:$IMAGE_TAG
-      - echo "Deployment complete!"
+      - echo "Pushing Docker image to ECR"
+      - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo "Updating deployment in EKS"
+      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo "Forcing rollout with annotation"
+      - kubectl patch deployment $DEPLOYMENT_NAME -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"build-timestamp\":\"$(date +%s)\"}}}}}"
+      - echo "Waiting for rollout to complete"
+      - kubectl rollout status deployment/$DEPLOYMENT_NAME
+
 artifacts:
   files:
-    - target/*.war
+    - target/*.jar
