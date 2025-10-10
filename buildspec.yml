@@ -7,7 +7,7 @@ env:
     CLUSTER_NAME: hello-world-eks2
     DEPLOYMENT_NAME: hello-deployment
     CONTAINER_NAME: hello-container
-    IMAGE_REPO_NAME: hello-world-ecr
+    IMAGE_REPO_NAME: hello-world-ecr2
     IMAGE_TAG: latest
 
 phases:
