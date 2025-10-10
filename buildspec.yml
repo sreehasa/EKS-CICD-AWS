@@ -28,8 +28,6 @@ phases:
       - echo "Updating kubeconfig"
       - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
       - export KUBECONFIG=/root/.kube/config
-      - echo "Verifying access to EKS"
-      - kubectl get nodes || (echo "kubectl failed" && exit 1)
       - echo "Logging into ECR"
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
 
