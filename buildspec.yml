@@ -16,46 +16,42 @@ phases:
       java: corretto21
       docker: 20
     commands:
-      - echo "Installing kubectl"
-      - KUBECTL_VERSION=$(curl -sL https://dl.k8s.io/release/stable.txt)
-      - echo "Latest kubectl version is $KUBECTL_VERSION"
-      - curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
-      - chmod +x kubectl
-      - mv kubectl /usr/local/bin/kubectl
+      - echo "Installing kubectl..."
+      - curl -o kubectl https://amazon-eks.s3.${AWS_REGION}.amazonaws.com/latest/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
       - kubectl version --client
 
   pre_build:
     commands:
-      - echo "Updating kubeconfig"
+      - echo "Authenticating to AWS..."
       - aws sts get-caller-identity
-      - mkdir -p ~/.kube
-      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-      - export KUBECONFIG=/root/.kube/config
-      - echo "Kubeconfig:"
-      - cat $KUBECONFIG
-      - echo "Verifying access to EKS"
-      - kubectl get nodes || (echo "kubectl failed" && exit 1)
-      - echo "Logging into ECR"
+      - echo "Updating kubeconfig for cluster: $CLUSTER_NAME"
+      - aws eks --region $AWS_REGION update-kubeconfig --name $CLUSTER_NAME
+      - echo "Verifying EKS connectivity..."
+      - kubectl get svc || (echo "kubectl failed: cannot connect to EKS cluster" && exit 1)
+      - echo "Logging into Amazon ECR..."
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-     
+
   build:
     commands:
-      - echo "Building the application"
+      - echo "Building Maven project..."
       - mvn clean package -DskipTests
-      - echo "Building Docker image"
+      - echo "Building Docker image..."
       - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
       - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo "Pushing Docker image to ECR"
+      - echo "Pushing Docker image to Amazon ECR..."
       - docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-      - echo "Updating deployment in EKS"
-      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
-      - echo "Forcing rollout with annotation"
-      - kubectl patch deployment $DEPLOYMENT_NAME -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"build-timestamp\":\"$(date +%s)\"}}}}}"
-      - echo "Waiting for rollout to complete"
+      - echo "Deploying to Amazon EKS..."
+      - kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG --record
+      - echo "Forcing rollout to pick up the new image..."
+      - kubectl rollout restart deployment/$DEPLOYMENT_NAME
+      - echo "Waiting for rollout to complete..."
       - kubectl rollout status deployment/$DEPLOYMENT_NAME
+      - echo "Deployment successful!"
 
 artifacts:
   files:
