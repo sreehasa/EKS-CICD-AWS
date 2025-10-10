@@ -13,7 +13,6 @@ env:
 phases:
   install:
     runtime-versions:
-      java: corretto21
       docker: 20
     commands:
       - echo "Installing kubectl"
@@ -27,21 +26,15 @@ phases:
   pre_build:
     commands:
       - echo "Updating kubeconfig"
-      - aws sts get-caller-identity
-      - mkdir -p ~/.kube
       - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
       - export KUBECONFIG=/root/.kube/config
-      - echo "Kubeconfig:"
-      - cat $KUBECONFIG
       - echo "Verifying access to EKS"
       - kubectl get nodes || (echo "kubectl failed" && exit 1)
       - echo "Logging into ECR"
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
-     
+
   build:
     commands:
-      - echo "Building the application"
-      - mvn clean package -DskipTests
       - echo "Building Docker image"
       - docker build -t $IMAGE_REPO_NAME:$IMAGE_TAG .
       - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
@@ -59,4 +52,4 @@ phases:
 
 artifacts:
   files:
-    - target/*.jar
+    - webapp.war
